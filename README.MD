@@ -1,0 +1,1 @@
+Phoca Gallery Tree Module is Joomla! CMS extension. Module which displays tree of categories of Phoca Gallery component.
