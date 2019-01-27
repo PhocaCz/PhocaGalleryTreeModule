@@ -1,0 +1,16 @@
+{
+	"author": "Jan Pavelka (www.phoca.cz)",
+	"authorUrl": "https://www.phoca.cz",
+	"copyright": "Jan Pavelka",
+	"license": "GNU/GPL",
+	"projectName": "PhocaGalleryTreeModule",
+	"extensionName": "Phoca Gallery Tree Module",
+	"projectInitials" : "PG",				  
+	"description": "Phoca Gallery Tree Module is a Joomla! Module which displays a tree of Phoca Gallery category links.",
+	"projectUrl": "https://www.phoca.cz/phocagallery-tree",
+	"projectDocumentationUrl": "https://www.phoca.cz/documentation/category/5-phoca-gallery-tree-module",
+	"projectDemo" : {
+		"Joomla! 1.5 Demo": "https://www.phoca.cz/demo/"
+	},
+	"projectColor": "#95313e"
+}

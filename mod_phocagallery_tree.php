@@ -8,48 +8,60 @@
  * @copyright Copyright (C) Jan Pavelka www.phoca.cz
  * @license http://www.gnu.org/copyleft/gpl.html GNU/GPL
  * @based on javascript: dTree 2.05 www.destroydrop.com/javascript/tree/
- * @copyright (c) 2002-2003 Geir Landr�
+ * @copyright (c) 2002-2003 Geir Landrö
  */
 defined('_JEXEC') or die('Restricted access');
-if(!defined('DS')) define('DS', DIRECTORY_SEPARATOR);
 
+
+// Include Phoca Gallery
 if (!JComponentHelper::isEnabled('com_phocagallery', true)) {
-	return JError::raiseError(JText::_('MOD_PHOCAGALLERY_TREE_PHOCA_GALLERY_ERROR'), JText::_('MOD_PHOCAGALLERY_TREE_PHOCA_GALLERY_IS_NOT_INSTALLED_ON_YOUR_SYSTEM'));
+    echo '<div class="alert alert-danger">Phoca Gallery Error: Phoca Gallery component is not installed or not published on your system</div>';
+    return;
 }
-if (! class_exists('PhocaGalleryLoader')) {
-    require_once( JPATH_ADMINISTRATOR.DS.'components'.DS.'com_phocagallery'.DS.'libraries'.DS.'loader.php');
+
+if (!class_exists('PhocaGalleryLoader')) {
+    require_once( JPATH_ADMINISTRATOR.'/components/com_phocagallery/libraries/loader.php');
 }
+
 phocagalleryimport('phocagallery.path.path');
 phocagalleryimport('phocagallery.path.route');
 phocagalleryimport('phocagallery.library.library');
 phocagalleryimport('phocagallery.text.text');
 phocagalleryimport('phocagallery.access.access');
 phocagalleryimport('phocagallery.file.file');
+phocagalleryimport('phocagallery.file.filethumbnail');
 phocagalleryimport('phocagallery.image.image');
 phocagalleryimport('phocagallery.image.imagefront');
 phocagalleryimport('phocagallery.render.renderfront');
+phocagalleryimport('phocagallery.render.renderadmin');
+phocagalleryimport('phocagallery.render.renderdetailwindow');
+phocagalleryimport('phocagallery.ordering.ordering');
+phocagalleryimport('phocagallery.picasa.picasa');
+phocagalleryimport('phocagallery.html.category');
 
-$user 		= &JFactory::getUser();
-$db 		= &JFactory::getDBO();
-$menu 		= &JSite::getMenu();
-$document	= &JFactory::getDocument();
-		
+$user 		= JFactory::getUser();
+$db 		= JFactory::getDBO();
+//$menu 		= JSite::getMenu();
+$app 		= JFactory::getApplication();
+$menu 		= $app->getMenu();
+$document	= JFactory::getDocument();
+
 // Start CSS
-$document->addStyleSheet(JURI::base(true).'/modules/mod_phocagallery_tree/assets/dtree.css');
-$document->addScript( JURI::base(true) . '/modules/mod_phocagallery_tree/assets/dtree.js' );
+$document->addStyleSheet(JURI::base(true).'/media/mod_phocagallery_tree/dtree.css');
+$document->addScript( JURI::base(true) . '/media/mod_phocagallery_tree/dtree.js' );
 
 //Image Path
-$imgPath = JURI::base(true) . '/modules/mod_phocagallery_tree/assets/';
+$imgPath = JURI::base(true) . '/media/mod_phocagallery_tree/';
 //Unique id for more modules
 $treeId = "d".uniqid( "tree_" );
 
 // Current category info
-$id 	= JRequest::getVar( 'id', 0, '', 'int' );
-$option = JRequest::getVar( 'option', 0, '', 'string' );
-$view 	= JRequest::getVar( 'view', 0, '', 'string' );
+$id 	= $app->input->get( 'id', 0, 'int' );
+$option = $app->input->get( 'option', 0, 'string' );
+$view 	= $app->input->get( 'view', 0, 'string' );
 
 if ( $option == 'com_phocagallery' && $view == 'category' ) {
-	$categoryId = $id; 
+	$categoryId = $id;
 } else {
 	$categoryId = 0;
 }
@@ -75,11 +87,11 @@ $display_access_category = $params->get( 'display_access_category',0 );
 
 // ACCESS - Only registered or not registered
 $hideCatAccessSql = '';
-$user  =& JFactory::getUser();
+$user  = JFactory::getUser();
 $aid = max ($user->getAuthorisedViewLevels());
 if ($display_access_category == 0) {
  $hideCatAccessSql = ' AND cc.access <= '. $aid;
-} 
+}
 
 // All categories -------------------------------------------------------
 $query = 'SELECT cc.title AS text, cc.id AS id, cc.parent_id as parentid, cc.alias as alias, cc.access as access, cc.accessuserid as accessuserid'
@@ -89,16 +101,16 @@ $query = 'SELECT cc.title AS text, cc.id AS id, cc.parent_id as parentid, cc.ali
 		. $hideCatSql
 		. $hideCatAccessSql
 		. ' ORDER BY cc.ordering';
-		
+
 $db->setQuery( $query );
 $categories = $db->loadObjectList();
 
 
 $unSet = 0;
-foreach ($categories as $key => $category) { 
+foreach ($categories as $key => $category) {
 	// USER RIGHT - ACCESS =======================================
 	$rightDisplay	= 1;
-	
+
 	if (isset($categories[$key])) {
 		//$rightDisplay = PhocaGalleryAccess::getUserRight( 'accessuserid', $categories[$key]->accessuserid, $categories[$key]->access, $user->get('aid', 0), $user->get('id', 0), $display_access_category);
 		$rightDisplay = PhocaGalleryAccess::getUserRight( 'accessuserid', $categories[$key]->accessuserid, $categories[$key]->access, $user->getAuthorisedViewLevels(), $user->get('id', 0), $display_access_category);
@@ -112,7 +124,7 @@ foreach ($categories as $key => $category) {
 }
 if ($unSet == 1) {
 	$categories = array_values($categories);
-}	
+}
 
 // Categories tree
 $tree = array();
@@ -120,20 +132,21 @@ $text = '';
 $tree = categoryTreePGTM( $categories, $tree, 0, $text, $treeId );
 
 // Create category tree
-function categoryTreePGTM( $data, $tree, $id=0, $text='', $treeId ) {      
-   foreach ( $data as $value ) {   
+function categoryTreePGTM( $data, $tree, $id = 0, $text = '', $treeId ) {
+   foreach ( $data as $value ) {
       if ($value->parentid == $id) {
          $link = JRoute::_(PhocaGalleryRoute::getCategoryRoute($value->id, $value->alias));
          $showText =  $text . ''.$treeId.'.add('.$value->id.','.$value->parentid.',\''.addslashes($value->text).'\',\''.$link.'\');'."\n";
          $tree[$value->id] = $showText;
-         $tree = categoryTreePGTM($data, $tree, $value->id, '', $treeId);   
+         $tree = categoryTreePGTM($data, $tree, $value->id, '', $treeId);
       }
    }
    return($tree);
 }
 
 // Categories (Head)
-$menu 				= JSite::getMenu();
+//$menu 			= JSite::getMenu();
+$menu 		= $app->getMenu();
 $itemsCategories	= $menu->getItems('link', 'index.php?option=com_phocagallery&view=categories');
 $linkCategories 	= '';
 if(isset($itemsCategories[0])) {
@@ -141,7 +154,7 @@ if(isset($itemsCategories[0])) {
 	$linkCategories = JRoute::_('index.php?option=com_phocagallery&view=categories&Itemid='.$itemId);
 }
 
-// Create javascript code	
+// Create javascript code
 $jsTree = '';
 foreach($tree as $key => $value)
 {
