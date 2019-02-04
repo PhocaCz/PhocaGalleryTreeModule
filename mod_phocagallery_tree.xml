@@ -2,7 +2,7 @@
 <extension type="module" client="site" method="upgrade" version="3">
 	<name>mod_phocagallery_tree</name>
 	<author>Jan Pavelka (www.phoca.cz)</author>
-	<creationDate>27/01/2019</creationDate>
+	<creationDate>04/02/2019</creationDate>
 	<authorEmail></authorEmail>
 	<authorUrl>https://www.phoca.cz</authorUrl>
 	<copyright>Jan Pavelka</copyright>
@@ -53,6 +53,6 @@
 	</config>
 
 	<updateservers>
-		<server type="extension" name="MOD_PHOCAGALLERY_TREE"><![CDATA[https://raw.githubusercontent.com/PhocaCz/PhocaGalleryTreeModule/master/manifest.xml]]></server>
+		<server type="extension" name="MOD_PHOCAGALLERY_TREE" priority="1"><![CDATA[https://raw.githubusercontent.com/PhocaCz/PhocaGalleryTreeModule/master/manifest.xml]]></server>
 	</updateservers>
 </extension>

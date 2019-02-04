@@ -16,6 +16,8 @@ Phoca Gallery Tree Module is a Joomla! Module which displays a tree of Phoca Gal
 
 [Phoca Gallery Tree Module](https://www.phoca.cz/phocagallery-tree)
 
+[Phoca Gallery Info Page](https://www.phoca.cz/project/phocagallery-joomla-gallery)
+
 
 
 ## Documentation
