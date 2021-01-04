@@ -2,7 +2,7 @@
 
 
 
-![Phoca Gallery Tree Module](https://github.com/PhocaCz/PhocaGalleryTreeModule/blob/master/mod_phocagallery_tree.png)
+![Phoca Gallery Tree Module](https://github.com/PhocaCz/PhocaGalleryTreeModule/blob/master/mod_phocagallery_tree.png?raw=true)
 
 # Phoca Gallery Tree Module
 
@@ -23,6 +23,8 @@ Phoca Gallery Tree Module is a Joomla! Module which displays a tree of Phoca Gal
 ## Documentation
 
 [Documentation](https://www.phoca.cz/documentation/category/5-phoca-gallery-tree-module)
+
+
 
 
 
@@ -52,7 +54,7 @@ Phoca Gallery Tree Module is a Joomla! Module which displays a tree of Phoca Gal
 
 ## Version
 
-4.3.11
+4.4.0
 
 
 
