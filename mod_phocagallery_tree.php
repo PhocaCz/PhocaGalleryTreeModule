@@ -12,6 +12,9 @@
  */
 defined('_JEXEC') or die('Restricted access');
 
+use Joomla\CMS\Helper\ModuleHelper;
+use Joomla\CMS\HTML\HTMLHelper;
+use Joomla\CMS\Language\Text;
 
 // Include Phoca Gallery
 if (!JComponentHelper::isEnabled('com_phocagallery', true)) {
@@ -45,6 +48,13 @@ $db 		= JFactory::getDBO();
 $app 		= JFactory::getApplication();
 $menu 		= $app->getMenu();
 $document	= JFactory::getDocument();
+$paramsC		= JComponentHelper::getParams('com_phocagallery') ;
+$category_ordering		= $paramsC->get( 'category_ordering', 1 );
+$categoryOrdering 		= PhocaGalleryOrdering::getOrderingString($category_ordering, 2);
+$categoryOrdering		= isset($categoryOrdering['output']) && $categoryOrdering['output'] != '' ? $categoryOrdering['output'] : ' ORDER BY cc.ordering ASC';
+$moduleclass_sfx 			= htmlspecialchars($params->get('moduleclass_sfx'), ENT_COMPAT, 'UTF-8');
+HTMLHelper::_('stylesheet', 'media/mod_phocagallery_tree/jstree/themes/proton/style.min.css', array('version' => 'auto'));
+HTMLHelper::_('script', 'media/mod_phocagallery_tree/jstree/jstree.min.js', array('version' => 'auto'));
 
 // Start CSS
 $document->addStyleSheet(JURI::base(true).'/media/mod_phocagallery_tree/dtree.css');
@@ -53,7 +63,7 @@ $document->addScript( JURI::base(true) . '/media/mod_phocagallery_tree/dtree.js'
 //Image Path
 $imgPath = JURI::base(true) . '/media/mod_phocagallery_tree/';
 //Unique id for more modules
-$treeId = "d".uniqid( "tree_" );
+$treeId = uniqid( "phgtjstree" );
 
 // Current category info
 $id 	= $app->input->get( 'id', 0, 'int' );
@@ -94,16 +104,16 @@ if ($display_access_category == 0) {
 }
 
 // All categories -------------------------------------------------------
-$query = 'SELECT cc.title AS text, cc.id AS id, cc.parent_id as parentid, cc.alias as alias, cc.access as access, cc.accessuserid as accessuserid'
+$query = 'SELECT cc.title AS title, cc.id AS id, cc.parent_id as parent_id, cc.alias as alias, cc.access as access, cc.accessuserid as accessuserid'
 		. ' FROM #__phocagallery_categories AS cc'
 		. ' WHERE cc.published = 1'
-		. ' AND cc.approved = 1'
+		//. ' AND cc.approved = 1'
 		. $hideCatSql
 		. $hideCatAccessSql
-		. ' ORDER BY cc.ordering';
+		. $categoryOrdering;
 
 $db->setQuery( $query );
-$categories = $db->loadObjectList();
+$categories = $db->loadAssocList();
 
 
 $unSet = 0;
@@ -113,7 +123,7 @@ foreach ($categories as $key => $category) {
 
 	if (isset($categories[$key])) {
 		//$rightDisplay = PhocaGalleryAccess::getUserRight( 'accessuserid', $categories[$key]->accessuserid, $categories[$key]->access, $user->get('aid', 0), $user->get('id', 0), $display_access_category);
-		$rightDisplay = PhocaGalleryAccess::getUserRight( 'accessuserid', $categories[$key]->accessuserid, $categories[$key]->access, $user->getAuthorisedViewLevels(), $user->get('id', 0), $display_access_category);
+		$rightDisplay = PhocaGalleryAccess::getUserRight( 'accessuserid', $categories[$key]['accessuserid'], $categories[$key]['access'], $user->getAuthorisedViewLevels(), $user->get('id', 0), $display_access_category);
 	}
 	//$user->authorisedLevels()
 	if ($rightDisplay == 0) {
@@ -126,22 +136,51 @@ if ($unSet == 1) {
 	$categories = array_values($categories);
 }
 
-// Categories tree
-$tree = array();
-$text = '';
-$tree = categoryTreePGTM( $categories, $tree, 0, $text, $treeId );
+$tree = PGTMcategoryTree($categories);
+$tree = PGTMnestedToUl($tree, $categoryId);
 
-// Create category tree
-function categoryTreePGTM( $data, $tree, $id = 0, $text = '', $treeId ) {
-   foreach ( $data as $value ) {
-      if ($value->parentid == $id) {
-         $link = JRoute::_(PhocaGalleryRoute::getCategoryRoute($value->id, $value->alias));
-         $showText =  $text . ''.$treeId.'.add('.$value->id.','.$value->parentid.',\''.addslashes($value->text).'\',\''.$link.'\');'."\n";
-         $tree[$value->id] = $showText;
-         $tree = categoryTreePGTM($data, $tree, $value->id, '', $treeId);
-      }
-   }
-   return($tree);
+
+function PGTMcategoryTree($d, $r = 0, $pk = 'parent_id', $k = 'id', $c = 'children') {
+	$m = array();
+	foreach ($d as $e) {
+		isset($m[$e[$pk]]) ?: $m[$e[$pk]] = array();
+		isset($m[$e[$k]]) ?: $m[$e[$k]] = array();
+		$m[$e[$pk]][] = array_merge($e, array($c => &$m[$e[$k]]));
+	}
+	//return $m[$r][0]; // remove [0] if there could be more than one root nodes
+	if (isset($m[$r])) {
+		return $m[$r];
+	}
+	return 0;
+}
+
+function PGTMnestedToUl($data, $currentCatid = 0) {
+	$result = array();
+
+	if (!empty($data) && count($data) > 0) {
+		$result[] = '<ul>';
+		foreach ($data as $k => $v) {
+			$link 		= JRoute::_(PhocaGalleryRoute::getCategoryRoute($v['id'], $v['alias']));
+
+			// Current Category is selected
+			if ($currentCatid == $v['id']) {
+				$result[] = sprintf(
+					'<li data-jstree=\'{"opened":true,"selected":true}\' >%s%s</li>',
+					'<a href="'.$link.'">' . $v['title']. '</a>',
+					PGTMnestedToUl($v['children'], $currentCatid)
+				);
+			} else {
+				$result[] = sprintf(
+					'<li>%s%s</li>',
+					'<a href="'.$link.'">' . $v['title']. '</a>',
+					PGTMnestedToUl($v['children'], $currentCatid)
+				);
+			}
+		}
+		$result[] = '</ul>';
+	}
+
+	return implode($result);
 }
 
 // Categories (Head)
@@ -149,35 +188,39 @@ function categoryTreePGTM( $data, $tree, $id = 0, $text = '', $treeId ) {
 $menu 		= $app->getMenu();
 $itemsCategories	= $menu->getItems('link', 'index.php?option=com_phocagallery&view=categories');
 $linkCategories 	= '';
+$categoriesHeader 	= '';
 if(isset($itemsCategories[0])) {
 	$itemId = $itemsCategories[0]->id;
 	$linkCategories = JRoute::_('index.php?option=com_phocagallery&view=categories&Itemid='.$itemId);
+	$categoriesHeader = '<div><a href="'.$linkCategories.'" style="text-decoration:none;color:#333;">'.Text::_( 'MOD_PHOCAGALLERY_TREE_CATEGORIES' ).'</a></div>';
 }
 
-// Create javascript code
-$jsTree = '';
-foreach($tree as $key => $value)
-{
-	$jsTree .= $value ;
-}
+Joomla\CMS\HTML\HTMLHelper::_('jquery.framework', false);
+$js	  = array();
+$js[] = ' ';
+$js[] = 'jQuery(document).ready(function() {';
+$js[] = '   jQuery("#'.$treeId.'").jstree({';
+$js[] = '      "core": {';
+$js[] = '         "themes": {';
+$js[] = '            "name": "proton",';
+$js[] = '            "responsive": true';
+$js[] = '         }';
+$js[] = '      }';
+$js[] = '   }).on("select_node.jstree", function (e, data) {';
+$js[] = '      document.location = data.instance.get_node(data.node, true).children("a").attr("href");';
+$js[] = '   });';
+$js[] = '   jQuery("#'.$treeId.'").on("changed.jstree", function (e, data) {';
+//$js[] = '      con sole.log(data.selected);';
+$js[] = '   });';
+$js[] = '   ';
+$js[] = '   jQuery("#'.$treeId.' button").on("click", function () {';
+$js[] = '      jQuery("#'.$treeId.'").jstree(true).select_node("child_node_1");';
+$js[] = '      jQuery("#'.$treeId.'").jstree("select_node", "child_node_1");';
+$js[] = '      jQuery.jstree.reference("#'.$treeId.'").select_node("child_node_1");';
+$js[] = '   });';
+$js[] = '});';
+$js[] = ' ';
 
-//  Output
-$output ='<div style="text-align:left;">';
-$output.='<div class="dtree">';
-$output.='<script type="text/javascript">'."\n";
-$output.='<!--'."\n";
-$output.=''."\n";
-$output.=''.$treeId.' = new dTree2548(\''.$treeId.'\', \''.$imgPath.'\');'."\n";
-$output.=''."\n";
-$output.=''.$treeId.'.add(0,-1,\' '.JText::_( 'MOD_PHOCAGALLERY_TREE_GALLERIES' ).'\',\''.$linkCategories.'\');'."\n";
-$output.=$jsTree;
-$output.=''."\n";
-$output.='document.write('.$treeId.');'."\n";
-$output.=''.$treeId.'.openTo('. (int) $categoryId.',\'true\');'. "\n";
-$output.=''."\n";
-$output.='//-->'."\n";
-$output.='</script>';
-$output.='</div></div>';
-
-require(JModuleHelper::getLayoutPath('mod_phocagallery_tree'));
+$document->addScriptDeclaration(implode("\n", $js));
+require(ModuleHelper::getLayoutPath('mod_phocagallery_tree'));
 ?>

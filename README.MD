@@ -52,9 +52,13 @@ Phoca Gallery Tree Module is a Joomla! Module which displays a tree of Phoca Gal
 
 
 
-## Version
+## Version (Joomla! 3.x)
 
 4.4.0
+
+## Version (Joomla! 4.x)
+
+4.5.0
 
 
 
