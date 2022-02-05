@@ -57,8 +57,8 @@ HTMLHelper::_('stylesheet', 'media/mod_phocagallery_tree/jstree/themes/proton/st
 HTMLHelper::_('script', 'media/mod_phocagallery_tree/jstree/jstree.min.js', array('version' => 'auto'));
 
 // Start CSS
-$document->addStyleSheet(JURI::base(true).'/media/mod_phocagallery_tree/dtree.css');
-$document->addScript( JURI::base(true) . '/media/mod_phocagallery_tree/dtree.js' );
+//$document->addStyleSheet(JURI::base(true).'/media/mod_phocagallery_tree/dtree.css');
+//$document->addScript( JURI::base(true) . '/media/mod_phocagallery_tree/dtree.js' );
 
 //Image Path
 $imgPath = JURI::base(true) . '/media/mod_phocagallery_tree/';
